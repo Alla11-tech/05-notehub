@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 import css from "./App.module.css";
 
@@ -10,15 +10,14 @@ import NoteList from "../NoteList/NoteList";
 import Modal from "../Modal/Modal";
 import NoteForm from "../NoteForm/NoteForm";
 
-import { fetchNotes, createNote, type CreateNotePayload } from "../../services/noteService";
+import { fetchNotes } from "../../services/noteService";
 
 const PER_PAGE = 12;
 
 export default function App() {
-  const queryClient = useQueryClient();
-
   const [page, setPage] = useState<number>(1);
   const [search, setSearch] = useState<string>("");
+
   const [debouncedSearch] = useDebounce(search, 500);
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -42,15 +41,6 @@ export default function App() {
   const notes = data?.notes ?? [];
   const totalPages = data?.totalPages ?? 0;
 
-  const createMutation = useMutation({
-    mutationFn: (payload: CreateNotePayload) => createNote(payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
-      setIsModalOpen(false);
-      setPage(1);
-    },
-  });
-
   const handleSearchChange = (value: string) => {
     setSearch(value);
     setPage(1);
@@ -65,7 +55,11 @@ export default function App() {
         <SearchBox value={search} onChange={handleSearchChange} />
 
         {totalPages > 1 && (
-          <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
         )}
 
         <button className={css.button} type="button" onClick={handleOpenModal}>
@@ -85,11 +79,7 @@ export default function App() {
 
       {isModalOpen && (
         <Modal onClose={handleCloseModal}>
-          <NoteForm
-            onCancel={handleCloseModal}
-            onSubmit={(values) => createMutation.mutate(values)}
-            isSubmitting={createMutation.isPending}
-          />
+          <NoteForm onCancel={handleCloseModal} />
         </Modal>
       )}
     </div>
